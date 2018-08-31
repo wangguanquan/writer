@@ -3,8 +3,7 @@
 
 #### 存储
 存储包含sqlite和mysql，如果选用mysql存储，需要自己建schema，然后将此schema填写到application.yml文档中，选用sqlite不用做任何修改，默认选用sqlite。
-
-**[注意]：**数据库存储内容并未code化，妥善保管sqlite生成的.db文件
+【注意】：数据库存储内容并未code化，妥善保管sqlite生成的.db文件
 
 #### 静态资源
 静态资源包含在resources/static下，如果直接使用`java -jar writer.jar`命令运行，且直接访问的话那么第一次上传图片可能无法查看，需要后端重启（这锅tomcat来背）。
