@@ -1,0 +1,27 @@
+spring:
+  profiles.active: develop
+---
+spring:
+  profiles: develop
+  dataSource:
+    driverClassName: org.sqlite.JDBC
+    url: jdbc:sqlite:writer.db
+  note:
+    save-with: sql  # file or sql
+    path: static/notes
+  image:
+    path: static/images
+
+---
+spring:
+  profiles: release
+  dataSource:
+    driverClassName: com.mysql.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/writer?useUnicode=true&characterEncoding=utf-8
+    username: {name}
+    password: {passd}
+  note:
+    save-with: sql  # file or sql
+    path: /home/writer/notes
+  image:
+    path: /home/writer/images
