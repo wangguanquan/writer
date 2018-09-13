@@ -4,6 +4,8 @@ import cn.colvin.upload.UploadService;
 import cn.colvin.utils.FileUtil;
 import cn.colvin.utils.StringUtil;
 import cn.colvin.utils.ZipUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +36,7 @@ import static cn.colvin.enums.LogType.PUBLISH;
 @RestController
 @RequestMapping("/author/notes")
 public class NoteController {
+    Logger logger = LogManager.getLogger(getClass());
     @Autowired
     NoteService service;
     @Autowired
@@ -93,6 +96,10 @@ public class NoteController {
      */
     @RequestMapping("/{id}")
     public NoteLog save(@PathVariable int id, @RequestBody NoteContent nc) {
+        if (id <= 2) {
+            logger.debug("默认文章无法操作.");
+            return null;
+        }
         nc.setId(id);
         return service.save(nc, AUTO_SAVE);
     }
@@ -107,8 +114,17 @@ public class NoteController {
         return service.listLogsByNid(id);
     }
 
+    /**
+     * 删除文章
+     * @param id
+     * @return
+     */
     @RequestMapping("/{id}/soft_destroy")
     public Map<String, ?> destroy(@PathVariable int id) {
+        if (id <= 2) {
+            logger.debug("默认文章无法操作.");
+            return null;
+        }
         return service.destroy(id);
     }
 
@@ -127,29 +143,41 @@ public class NoteController {
                 return;
             }
             Path path = Files.createTempDirectory("writer+");
-            System.out.println(path);
+//            System.out.println(path);
             ClassLoader loader = getClass().getClassLoader();
             // copy style
             FileUtil.cp(loader.getResourceAsStream("static/static/css/entry.css"), Files.createFile(path.resolve("entry.css")));
+            FileUtil.cp(loader.getResourceAsStream("static/static/css/web.css"), Files.createFile(path.resolve("web.css")));
             String content = service.content(id);
             // copy markdown content
             FileUtil.cp(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), Files.createFile(path.resolve("README.md")));
             // copy images
             Matcher matcher = pat.matcher(content);
-            boolean mkdir = true;
-            Path imagePath = null;
+            boolean mkdir = true, mkstatic = true;
+            Path imagePath = null, staticPath = null, packagePath = Paths.get(".");
             while (matcher.find()) {
                 String image = matcher.group(2);
                 Path realPath = uploadService.getRealPath(image);
                 // No copy when null path or http/https path
                 if (realPath == null) continue;
-                if (mkdir) {
-                    mkdir = !mkdir;
-                    imagePath = FileUtil.mkdir(path.resolve("images"));
-                }
                 int n;
                 String s = image.substring((n = image.lastIndexOf('/')) > 0 ? n + 1 : 0);
-                FileUtil.cp(realPath.toFile(), imagePath.resolve(s));
+                // 复制jar包内的图片
+                if (realPath.equals(packagePath)) {
+                    if (mkstatic) {
+                        mkstatic = !mkstatic;
+                        staticPath = FileUtil.mkdir(path.resolve(image.substring(0, image.lastIndexOf('/'))));
+                    }
+                    FileUtil.cp(loader.getResourceAsStream("static/" + image), staticPath.resolve(s));
+                    // 复制用户上传的图片
+                } else {
+                    if (mkdir) {
+                        mkdir = !mkdir;
+                        imagePath = FileUtil.mkdir(path.resolve("images"));
+                    }
+                    FileUtil.cp(realPath.toFile(), imagePath.resolve(s));
+                }
+                // 网络图片仅引用不复制
             }
             // write html
             String template = StringUtil.readString(loader.getResourceAsStream("template/index.html"));
@@ -170,7 +198,7 @@ public class NoteController {
             nc.setContent(content);
             service.save(nc, PUBLISH);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("下载文档失败。", e);
         }
     }
 
@@ -181,6 +209,10 @@ public class NoteController {
      */
     @RequestMapping("/{id}/move")
     public void move(@PathVariable int id, @RequestBody Map<String, Integer> body) {
+        if (id <= 2) {
+            logger.debug("默认文章无法操作.");
+            return;
+        }
         service.move(id, body.get("notebook_id"));
     }
 

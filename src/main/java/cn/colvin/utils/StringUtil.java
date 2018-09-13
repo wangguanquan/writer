@@ -1,5 +1,7 @@
 package cn.colvin.utils;
 
+import sun.net.util.IPAddressUtil;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +14,10 @@ import java.util.concurrent.ThreadLocalRandom;
 public class StringUtil {
     private StringUtil() {}
     static final char[] base = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".toCharArray();
+
+    public static boolean isEmpty(String s) {
+        return s == null || s.isEmpty();
+    }
 
     public static String randomString(int len) {
         char[] v = new char[len];
@@ -54,5 +60,26 @@ public class StringUtil {
             }
         }
         return -1;
+    }
+
+    public static int ip2Int(String ip) {
+        if (isEmpty(ip)) {
+            return 0;
+        }
+        byte[] bytes = IPAddressUtil.textToNumericFormatV4(ip);
+        int n = 0, p = 24;
+        if (bytes != null) {
+            for (byte b : bytes) {
+                n |= (b & 0xff) << p;
+                p -= 8;
+            }
+        } else if ((bytes = IPAddressUtil.textToNumericFormatV6(ip)) != null) {
+            for (int i = bytes.length - 4; i < bytes.length; i++) {
+                n |= (bytes[i] & 0xff) << p;
+                p -= 8;
+            }
+        }
+        // ipv6 ::1 == ipv4 127.0.0.1
+        return n != 1 ? n : 2130706433;
     }
 }

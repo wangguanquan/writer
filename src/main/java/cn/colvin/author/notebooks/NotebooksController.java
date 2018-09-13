@@ -1,10 +1,16 @@
 package cn.colvin.author.notebooks;
 
+import cn.colvin.author.UserService;
 import cn.colvin.author.note.Note;
 import cn.colvin.author.note.NoteService;
+import cn.colvin.utils.StringUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -13,10 +19,13 @@ import java.util.List;
 @RestController
 @RequestMapping("author/notebooks")
 public class NotebooksController {
+    Logger logger = LogManager.getLogger(getClass());
     @Autowired
     NotebooksService service;
     @Autowired
     NoteService noteService;
+    @Autowired
+    UserService userService;
 
     /**
      * 获取文集
@@ -24,7 +33,7 @@ public class NotebooksController {
      */
     @RequestMapping
     public List<Notebook> get() {
-        return service.get();
+        return service.get(userService.getUid());
     }
 
     /**
@@ -34,7 +43,7 @@ public class NotebooksController {
      */
     @PostMapping
     public Notebook create(@RequestBody Notebook notebook) {
-        return service.create(notebook);
+        return service.create(notebook, userService.getUid());
     }
 
     /**
@@ -43,9 +52,12 @@ public class NotebooksController {
      */
     @PutMapping("/{id}")
     public void edit(@PathVariable int id, @RequestBody Notebook notebook) {
-        // TODO parameter error.
+        if (id == 1) {
+            logger.debug("默认文集无法删除");
+            return;
+        }
         notebook.setId(id);
-        service.edit(notebook);
+        service.edit(notebook, userService.getUid());
     }
 
     /**
@@ -54,7 +66,7 @@ public class NotebooksController {
      */
     @PutMapping("/sequence")
     public void sequence(@RequestBody Seq seq) {
-        service.sequence(seq.ids);
+        service.sequence(seq.sequence);
     }
 
     /**
@@ -73,14 +85,18 @@ public class NotebooksController {
      */
     @RequestMapping("/{id}/soft_destroy")
     public void destroy(@PathVariable int id) {
-        service.destroy(id);
+        if (id == 1) {
+            logger.debug("默认文集无法删除");
+            return;
+        }
+        service.destroy(id, userService.getUid());
     }
 
     public static class Seq {
-        private int[] ids;
+        private int[] sequence;
 
-        public void setIds(int[] ids) {
-            this.ids = ids;
+        public void setSequence(int[] sequence) {
+            this.sequence = sequence;
         }
     }
 }

@@ -183,20 +183,25 @@ public class NoteService {
         return Collections.emptyList();
     }
 
-    public Note getBySlug(String slug) {
-        try (Connection con = dataSource.getConnection()) {
-            return SQL.select(con, "select id, title from note where slug = ?", r -> {
-                Note n = new Note();
-                n.setId(r.getInt(1));
-                n.setTitle(r.getString(2));
-                return n;
-            }, p -> p.setString(1, slug));
-        } catch (SQLException e) {
-            logger.error("", e);
-        }
-
-        return null;
+/**
+ * 根据slug获取Note
+ * @param slug type of string
+ * @return note or null
+ */
+public Note getBySlug(String slug) {
+    try (Connection con = dataSource.getConnection()) {
+        return SQL.select(con, "select id, title from note where slug = ?", r -> {
+            Note n = new Note();
+            n.setId(r.getInt(1));
+            n.setTitle(r.getString(2));
+            return n;
+        }, p -> p.setString(1, slug));
+    } catch (SQLException e) {
+        logger.error("", e);
     }
+
+    return null;
+}
 
     public Map<String, ?> destroy(int id) {
         try (Connection con = dataSource.getConnection()) {

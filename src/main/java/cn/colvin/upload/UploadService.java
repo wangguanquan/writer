@@ -78,6 +78,8 @@ public class UploadService {
     public Path getRealPath(String url) {
         if (url.startsWith(imagePath)) {
             return Paths.get(path, url.substring(imagePath.length()));
+        } else if (url.startsWith("static/")) {
+            return Paths.get(".");
         }
         return null;
     }

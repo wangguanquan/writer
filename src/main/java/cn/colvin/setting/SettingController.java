@@ -1,5 +1,6 @@
 package cn.colvin.setting;
 
+import cn.colvin.author.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,8 @@ import java.util.Map;
 public class SettingController {
     @Autowired
     SettingService service;
+    @Autowired
+    UserService userService;
     /**
      * 模式（day/night）
      * @param data
@@ -27,7 +30,7 @@ public class SettingController {
         // read_mode
         // default_font
         // locale
-        service.setting(data);
+        service.setting(data, userService.getUid());
         Map<String, String> map = new HashMap<>();
         map.put("message", "ok");
         return map;
@@ -39,6 +42,6 @@ public class SettingController {
      */
     @PutMapping("/author/settings")
     public void changeEditor(@RequestBody Map<String, String> data) {
-        service.setting(data);
+        service.setting(data, userService.getUid());
     }
 }
