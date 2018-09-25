@@ -14600,7 +14600,8 @@ webpackJsonp([7], {
             Dn.katex = function (e, t) {
                 var n = e[t], r = n.block, o = n.content,
                     i = "/math?formula=" + encodeURIComponent(o), a = Z.a.escape(o);
-                return r ? '<img class="math-block" src="' + i + '" alt="' + a + '" mathimg="1">' : '<img class="math-inline" src="' + i + '" alt="' + a + '" mathimg="1">'
+                // return r ? '<img class="math-block" src="' + i + '" alt="' + a + '" mathimg="1">' : '<img class="math-inline" src="' + i + '" alt="' + a + '" mathimg="1">'
+              return ''
             };
             var Nn = Object.assign({}, Cn, On, Kn, Rn, Dn), In = function (e) {
                     return Z.a.isArray(e) && e.every(function (e) {
@@ -32077,11 +32078,11 @@ webpackJsonp([7], {
                     var n = _.base64Encode(t), r = "crc=" + _.hashCode(n);
                     return -1 !== e.indexOf("?") ? e + "&data=" + encodeURIComponent(n) + "&ext=" + encodeURIComponent(r) : e + "?data=" + encodeURIComponent(n) + "&ext=" + encodeURIComponent(r)
                 }, sd.sendState.prepareServerUrl = function (e, t) {
-                    if (_.isArray(sd.para.server_url)) for (var n = 0; n < sd.para.server_url.length; n++) this.sendCall(this.getUrlPara(sd.para.server_url[n], e), t); else this.sendCall(this.getUrlPara(sd.para.server_url, e), t)
+                    //if (_.isArray(sd.para.server_url)) for (var n = 0; n < sd.para.server_url.length; n++) this.sendCall(this.getUrlPara(sd.para.server_url[n], e), t); else this.sendCall(this.getUrlPara(sd.para.server_url, e), t)
                 }, sd.sendState.stateInfo = function (e) {
-                    this.callback = e.callback, this.hasCalled = !1, this.img = document.createElement("img"), this.img.width = 1, this.img.height = 1, this.server_url = e.server_url, this.sendState = e.sendState, this.start()
+                    //this.callback = e.callback, this.hasCalled = !1, this.img = document.createElement("img"), this.img.width = 1, this.img.height = 1, this.server_url = e.server_url, this.sendState = e.sendState, this.start()
                 }, sd.sendState.stateInfo.prototype.start = function () {
-                    function e() {
+                    /*function e() {
                         "object" != typeof t || "function" != typeof t.callback || t.hasCalled || (t.hasCalled = !0, t.callback())
                     }
 
@@ -32092,22 +32093,22 @@ webpackJsonp([7], {
                         this.onerror = null, e()
                     }, this.img.onabort = function (t) {
                         this.onabort = null, e()
-                    }, this.img.src = this.server_url
+                    }, this.img.src = this.server_url*/
                 }, sd.sendState.beaconCall = function (e, t) {
-                    navigator.sendBeacon(e)
+                    //navigator.sendBeacon(e)
                 }, sd.sendState.ajaxCall = function (e, t) {
-                    e = e.replace("https://sensorswww.cloud.sensorsdata.cn:4006/sa.gif?token=6b551cb59b1c1973&data=", "https://zhaohaiying.cloud.sensorsdata.cn:4006/sa.gif?token=9d8f18c23084485f&data="), _.ajax({
+                    /*e = e.replace("https://sensorswww.cloud.sensorsdata.cn:4006/sa.gif?token=6b551cb59b1c1973&data=", "https://zhaohaiying.cloud.sensorsdata.cn:4006/sa.gif?token=9d8f18c23084485f&data="), _.ajax({
                         url: e,
                         type: "GET",
                         credentials: !1,
                         cors: !0
-                    })
+                    })*/
                 }, sd.sendState.sendCall = function (e, t) {
-                    ++this._receive, this["_state" + this._receive] = new this.stateInfo({
+                    /*++this._receive, this["_state" + this._receive] = new this.stateInfo({
                         callback: t,
                         server_url: e,
                         sendState: this
-                    })
+                    })*/
                 };
                 var saNewUser = {
                     checkIsAddSign: function (e) {

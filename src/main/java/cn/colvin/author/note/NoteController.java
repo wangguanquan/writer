@@ -182,7 +182,7 @@ public class NoteController {
             // write html
             String template = StringUtil.readString(loader.getResourceAsStream("template/index.html"));
             template = template.replace("${title}", note.getTitle())
-                    .replace("${body}", body)
+                    .replace("${body}", body.replace("<pre>", "<pre class=\"hljs\">")) // code format
                     .replace("${date}", LocalDateTime.ofEpochSecond(note.getContent_updated_at(), 0, ZoneOffset.ofHours(+8)).format(LOCAL_ISO_DATETIME));
             FileUtil.cp(new ByteArrayInputStream(template.getBytes(StandardCharsets.UTF_8)), Files.createFile(path.resolve(note.getTitle() + ".html")));
             // zip to download
