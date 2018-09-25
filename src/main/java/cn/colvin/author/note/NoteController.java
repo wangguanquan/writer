@@ -186,7 +186,7 @@ public class NoteController {
                     .replace("${date}", LocalDateTime.ofEpochSecond(note.getContent_updated_at(), 0, ZoneOffset.ofHours(+8)).format(LOCAL_ISO_DATETIME));
             FileUtil.cp(new ByteArrayInputStream(template.getBytes(StandardCharsets.UTF_8)), Files.createFile(path.resolve(note.getTitle() + ".html")));
             // zip to download
-            Path outPath = Paths.get(notePath).resolve(note.getSlug());
+            Path outPath = Paths.get(notePath, String.valueOf(id)).resolve(note.getSlug());
             ZipUtil.zip(outPath, false, path);
             // delete temp files
             FileUtil.rm_rf(path);

@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -81,5 +82,14 @@ public class StringUtil {
         }
         // ipv6 ::1 == ipv4 127.0.0.1
         return n != 1 ? n : 2130706433;
+    }
+
+    public static boolean isUUID(String uuid) {
+        if (isEmpty(uuid)) return false;
+        try {
+            return UUID.fromString(uuid) != null;
+        } catch(IllegalArgumentException e) {
+            return false;
+        }
     }
 }

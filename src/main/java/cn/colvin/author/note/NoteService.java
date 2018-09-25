@@ -4,24 +4,27 @@ import cn.colvin.enums.LogType;
 import cn.colvin.other.MyDataSource;
 import cn.colvin.other.SQL;
 import cn.colvin.other.processor.BeanResultSetProcessor;
+import cn.colvin.utils.FileUtil;
 import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Create by guanquan.wang at 2018-08-23 16:51
  */
+@ConfigurationProperties(prefix = "spring.note")
 @Service
 public class NoteService {
     Logger logger = LogManager.getLogger(getClass());
@@ -29,6 +32,17 @@ public class NoteService {
     private MyDataSource dataSource;
     @Autowired
     cn.colvin.other.SQL<Note> SQL;
+
+    private String path;
+    private boolean saveWithFile = true;
+
+    public void setSaveWith(String saveWith) {
+        this.saveWithFile = "file".equalsIgnoreCase(saveWith);
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
 
     /**
      * 创建文章
@@ -130,8 +144,12 @@ public class NoteService {
     BeanResultSetProcessor<String> toString = (ResultSet r) -> r.getString(1);
     public String content(int id) {
         try (Connection con = dataSource.getConnection()) {
-            return new SQL<String>().select(con, "select content from note_log where id = (select t1.autosave_control from note t1 where t1.id = ?)", toString, ps -> ps.setInt(1, id));
-        } catch (SQLException e) {
+            String content = new SQL<String>().select(con, "select content from note_log where id = (select t1.autosave_control from note t1 where t1.id = ?)", toString, ps -> ps.setInt(1, id));
+            if (saveWithFile && StringUtil.isUUID(content)) {
+                content = StringUtil.readString(Files.newInputStream(Paths.get(path, String.valueOf(id), content)));
+            }
+            return content;
+        } catch (SQLException | IOException e) {
             logger.error("", e);
         }
         return "";
@@ -139,10 +157,28 @@ public class NoteService {
 
     public NoteLog save(NoteContent nc, LogType logType) {
         final long at = System.currentTimeMillis() / 1000;
+        String content = null;
+        if (saveWithFile) {
+            content = UUID.randomUUID().toString();
+            Path notePath = Paths.get(path, String.valueOf(nc.getId()));
+            if (!Files.exists(notePath)) {
+                try {
+                    FileUtil.mkdir(notePath);
+                } catch (IOException e) {
+                    logger.error("", e);
+                }
+            }
+            try (BufferedWriter writer = Files.newBufferedWriter(notePath.resolve(content))) {
+                writer.write(nc.getContent());
+            } catch (IOException e) {
+                logger.error("", e);
+            }
+        }
+        final String ct = content;
         try (Connection con = dataSource.getConnection()) {
           long id = SQL.insert(con, "insert into note_log(note_id, content, update_at, title, note_log_type) values (?, ?, ?, ?, ?)", ps -> {
                 ps.setInt(1, nc.getId());
-                ps.setString(2, nc.getContent());
+                ps.setString(2, saveWithFile ? ct: nc.getContent());
                 ps.setLong(3, at);
                 ps.setString(4, nc.getTitle());
                 ps.setInt(5, logType.type());

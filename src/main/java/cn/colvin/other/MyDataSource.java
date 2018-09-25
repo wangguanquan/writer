@@ -16,22 +16,10 @@ public class MyDataSource {
     private String url;
     private String driverClassName;
     /**
-     * @return the username
-     */
-    public String getUsername() {
-        return username;
-    }
-    /**
      * @param username the username to set
      */
     public void setUsername(String username) {
         this.username = username;
-    }
-    /**
-     * @return the password
-     */
-    public String getPassword() {
-        return password;
     }
     /**
      * @param password the password to set
@@ -40,28 +28,37 @@ public class MyDataSource {
         this.password = password;
     }
     /**
-     * @return the url
-     */
-    public String getUrl() {
-        return url;
-    }
-    /**
      * @param url the url to set
      */
     public void setUrl(String url) {
         this.url = url;
     }
     /**
-     * @return the driverClassName
-     */
-    public String getDriverClassName() {
-        return driverClassName;
-    }
-    /**
      * @param driverClassName the driverClassName to set
      */
     public void setDriverClassName(String driverClassName) {
         this.driverClassName = driverClassName;
+    }
+    /**
+     * database type: mysql oracle sqlite
+     * @return
+     */
+    public String getType() {
+        if (url != null) {
+            int index = url.indexOf(':'), next = index > 0 ? url.indexOf(':', ++index) : -1;
+            if (next < 0) return null;
+            String type = url.substring(index, next);
+            // special case type
+            if ("microsoft".equals(type)) {
+                index = ++next;
+                next = url.indexOf(':', index);
+                if (next > index) {
+                    type = url.substring(next, index);
+                }
+            }
+            return type;
+        }
+        return null;
     }
 
     public BasicDataSource getDataSource() {

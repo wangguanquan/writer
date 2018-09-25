@@ -7,10 +7,10 @@ spring:
     driverClassName: org.sqlite.JDBC
     url: jdbc:sqlite:writer.db
   note:
-    save-with: sql  # file or sql
-    path: static/notes
+    save-with: sql  # storage note with file or sql. default file
+    path: static/notes # storage note path
   image:
-    path: static/images
+    path: static/images # upload image storage path
 
 ---
 spring:
@@ -21,7 +21,7 @@ spring:
     username: {name}
     password: {passd}
   note:
-    save-with: sql  # file or sql
-    path: /home/writer/notes
+    save-with: file # storage note with file or sql. default file
+    path: /home/writer/notes # storage note path
   image:
-    path: /home/writer/images
+    path: /home/writer/images # upload image storage path

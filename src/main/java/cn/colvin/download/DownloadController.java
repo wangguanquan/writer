@@ -67,7 +67,7 @@ public class DownloadController {
         try {
             String fileName = URLEncoder.encode(note.getTitle() + ".zip", StandardCharsets.UTF_8.displayName());
             header.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"; filename*=utf-8''" + fileName);
-            InputStreamResource isr = new InputStreamResource(Files.newInputStream(Paths.get(notePath).resolve(slug + ".zip")));
+            InputStreamResource isr = new InputStreamResource(Files.newInputStream(Paths.get(notePath, String.valueOf(note.getId())).resolve(slug + ".zip")));
 //            return new ResponseEntity<>(isr, header, HttpStatus.OK);
             return ResponseEntity.ok().headers(header).body(isr);
         } catch (IOException e) {

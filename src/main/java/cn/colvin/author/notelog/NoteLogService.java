@@ -2,11 +2,16 @@ package cn.colvin.author.notelog;
 
 import cn.colvin.enums.LogType;
 import cn.colvin.other.MyDataSource;
+import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -15,11 +20,22 @@ import java.util.Map;
 /**
  * Create by guanquan.wang at 2018-08-24 14:26
  */
+@ConfigurationProperties(prefix = "spring.note")
 @Service
 public class NoteLogService {
     Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
+    private String path;
+    private boolean saveWithFile = true;
+
+    public void setSaveWith(String saveWith) {
+        this.saveWithFile = "file".equalsIgnoreCase(saveWith);
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
     @Autowired
     cn.colvin.other.SQL<Void> SQL;
 
@@ -28,8 +44,16 @@ public class NoteLogService {
         map.put("id", String.valueOf(id));
         try (Connection con = dataSource.getConnection()) {
             SQL.select(con, "select content, title from note_log where id = ? and note_id = ?", r -> {
-               map.put("content", r.getString(1));
-               map.put("title", r.getString(2));
+               String content = r.getString(1);
+                if (saveWithFile && StringUtil.isUUID(content)) {
+                    try {
+                        content = StringUtil.readString(Files.newInputStream(Paths.get(path, String.valueOf(note_id), content)));
+                    } catch (IOException e) {
+                        logger.error("", e);
+                    }
+                }
+                map.put("content", content);
+                map.put("title", r.getString(2));
             }, ps -> {
                 ps.setInt(1, id);
                 ps.setInt(2, note_id);

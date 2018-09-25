@@ -2,18 +2,24 @@ package cn.colvin.runner;
 
 import cn.colvin.other.MyDataSource;
 import cn.colvin.other.SQL;
+import cn.colvin.utils.FileUtil;
 import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.UUID;
 
 /**
  * 启动程序的初始化操作
@@ -22,11 +28,34 @@ import java.util.Arrays;
  * java -jar writer.jar --clean _ // 清空所有表数据
  * Create by guanquan.wang at 2018-08-28 16:16
  */
+@ConfigurationProperties(prefix = "spring.note")
 @Component
 public class CreateTableRunner implements ApplicationRunner {
     Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
+    private String path;
+    private boolean saveWithFile = true;
+
+    public void setSaveWith(String saveWith) {
+        this.saveWithFile = "file".equalsIgnoreCase(saveWith);
+    }
+
+    public void setPath(String path) {
+        if (path == null || path.isEmpty()) {
+            path = "notes/";
+        }
+
+        Path temp = Paths.get(path);
+        if (!Files.exists(temp)) {
+            try {
+                FileUtil.mkdir(temp);
+            } catch (IOException e) {
+                logger.error("", e);
+            }
+        }
+        this.path = path;
+    }
 
     cn.colvin.other.SQL<Void> SQL = new SQL<>();
     @Override
@@ -80,9 +109,10 @@ public class CreateTableRunner implements ApplicationRunner {
     private void create(Connection con) throws SQLException {
         logger.info("Start to create table if not exists...");
 
+        String auto = "mysql".equals(dataSource.getType()) ? "   id integer primary key AUTO_INCREMENT,\n" : "   id integer primary key,\n";
+
         logger.info("create table notebook.");
-        SQL.update(con, "CREATE TABLE IF NOT EXISTS notebook (\n" +
-                "   id integer primary key,\n" +
+        SQL.update(con, "CREATE TABLE IF NOT EXISTS notebook (\n" + auto +
                 "   uid integer,\n" +
                 "   name text DEFAULT NULL,\n" +
                 "   seq integer DEFAULT NULL,\n" +
@@ -91,8 +121,7 @@ public class CreateTableRunner implements ApplicationRunner {
                 " )");
 
         logger.info("create table note.");
-        SQL.update(con, "CREATE TABLE IF NOT EXISTS note (\n" +
-                "   id integer primary key,\n" +
+        SQL.update(con, "CREATE TABLE IF NOT EXISTS note (\n" + auto +
                 "   slug text DEFAULT NULL,\n" +
                 "   shared integer DEFAULT NULL,\n" +
                 "   notebook_id integer DEFAULT NULL,\n" +
@@ -109,8 +138,7 @@ public class CreateTableRunner implements ApplicationRunner {
                 " )");
 
         logger.info("create table note_log.");
-        SQL.update(con, "CREATE TABLE IF NOT EXISTS note_log (\n" +
-                "   id integer primary key,\n" +
+        SQL.update(con, "CREATE TABLE IF NOT EXISTS note_log (\n" + auto +
                 "   note_id integer DEFAULT NULL,\n" +
                 "   control integer,\n" +
                 "   title text DEFAULT NULL,\n" +
@@ -150,7 +178,7 @@ public class CreateTableRunner implements ApplicationRunner {
                 ps.setInt(3, 1);
                 ps.setInt(4, i);
                 ps.setInt(5, 2);
-                ps.setInt(6, 1);
+                ps.setInt(6, i + 1);
                 ps.setString(7, titles[i]);
                 ps.setLong(8, at);
                 ps.setLong(9, at);
@@ -160,18 +188,40 @@ public class CreateTableRunner implements ApplicationRunner {
             }
         });
 
-        SQL.batchUpdate(con, "insert into note_log(note_id, content, update_at, title, note_log_type) values (?, ?, ?, ?, ?)", ps -> {
+        String[] contents = new String[titles.length];
+        // 以文件格式保存
+        if (saveWithFile) {
+            for (int i = 0; i < titles.length; i++) {
+                contents[i] = UUID.randomUUID().toString();
+
+                Path notePath = Paths.get(path, String.valueOf(i + 1));
+                if (!Files.exists(notePath)) {
+                    try {
+                        FileUtil.mkdir(notePath);
+                    } catch (IOException e) {
+                        logger.error("", e);
+                    }
+                }
+                FileUtil.cp(getClass().getClassLoader().getResourceAsStream("template/" + titles[i] + ".md"), notePath.resolve(contents[i]));
+            }
+        } else {
             for (int i = 0; i < titles.length; i++) {
                 try {
-                    ps.setInt(1, i + 1);
-                    ps.setString(2, StringUtil.readString(getClass().getClassLoader().getResourceAsStream("template/" + titles[i] + ".md")));
-                    ps.setLong(3, at);
-                    ps.setString(4, titles[i]);
-                    ps.setInt(5, 1);
-                    ps.addBatch();
+                    contents[i] = StringUtil.readString(getClass().getClassLoader().getResourceAsStream("template/" + titles[i] + ".md"));
                 } catch (IOException e) {
-
+                    logger.error("", e);
                 }
+            }
+        }
+
+        SQL.batchUpdate(con, "insert into note_log(note_id, content, update_at, title, note_log_type) values (?, ?, ?, ?, ?)", ps -> {
+            for (int i = 0; i < titles.length; i++) {
+                ps.setInt(1, i + 1);
+                ps.setString(2, contents[i]);
+                ps.setLong(3, at);
+                ps.setString(4, titles[i]);
+                ps.setInt(5, 1);
+                ps.addBatch();
             }
         });
     }

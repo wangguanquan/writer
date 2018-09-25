@@ -38,7 +38,7 @@ public class UploadService {
             try {
                 FileUtil.mkdir(temp);
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("", e);
             }
         }
         this.path = path;
