@@ -5875,6 +5875,9 @@ webpackJsonp([4], {
                         return e((0, D.changeFontType)(t))
                     }, changeEditorType: function (t) {
                         return e((0, z.changeEditorType)(t))
+                    }, exportAll: function(t) {
+                        // TODO export all notes
+                        return e((0, D.exportAll)(t))
                     }
                 }
             }), (0, _.SortableContainer)(i = (0, M.withRouter)(i = r(i = function (e) {
@@ -5931,7 +5934,10 @@ webpackJsonp([4], {
                         o.setState({helpModalVisible: !0})
                     }, o.onHelpModalCancel = function () {
                         o.setState({helpModalVisible: !1})
-                    }, r = n, (0, y.default)(o, r)
+                    }, o.exportAll = function() {
+                      o.props.exportAll(!0);
+                    }
+                    , r = n, (0, y.default)(o, r)
                 }
 
                 return (0, x.default)(t, e), (0, v.default)(t, [{
@@ -5949,7 +5955,7 @@ webpackJsonp([4], {
                         return C.default.createElement(s.default, {
                             className: I.default["notebooks-wrapper"],
                             span: 4
-                        }, C.default.createElement("div", {className: I.default["to-home"]}, C.default.createElement("a", {href: window.location.origin}, S.default.get("notebooks.to-homepage"))), C.default.createElement("div", {className: I.default["new-notebook"]}, C.default.createElement("div", {
+                        }, C.default.createElement("div", {className: I.default["to-home"]}, C.default.createElement("a", {href: 'javascript:0', onClick: this.exportAll}, S.default.get("notebooks.to-homepage"))), C.default.createElement("div", {className: I.default["new-notebook"]}, C.default.createElement("div", {
                             className: I.default["new-notebook--btn"],
                             onClick: this.newNoteBookBtnClick
                         }, C.default.createElement(F.default, {name: "plus"}), C.default.createElement("span", null, c ? S.default.get("notebooks.new-notebook-ing") : S.default.get("notebooks.new-notebook"))), C.default.createElement("div", {className: I.default["new-notebook-form"]}, C.default.createElement(U.default, {
