@@ -15,7 +15,7 @@ import java.util.Map;
 @RequestMapping("/upload_images")
 public class UploadController {
     @Autowired
-    UploadService service;
+    private UploadService service;
 
     @RequestMapping("/token.json")
     public ImageToken token(@RequestParam String filename) {

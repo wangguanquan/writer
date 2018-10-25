@@ -16,11 +16,11 @@ import java.util.Map;
  */
 @Service
 public class SettingService {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
     @Autowired
-    cn.colvin.other.SQL<Void> SQL;
+    private cn.colvin.other.SQL<Void> SQL;
 
     public void setting(Map<String, String> data, int uid) {
         try (Connection con = dataSource.getConnection()) {

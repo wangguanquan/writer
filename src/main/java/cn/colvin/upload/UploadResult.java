@@ -5,8 +5,8 @@ package cn.colvin.upload;
  */
 public class UploadResult {
     private String format;
-    int width;
-    int height;
+    private int width;
+    private int height;
     private String url;
 
     public String getFormat() {

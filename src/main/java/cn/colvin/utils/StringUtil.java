@@ -87,9 +87,10 @@ public class StringUtil {
     public static boolean isUUID(String uuid) {
         if (isEmpty(uuid)) return false;
         try {
-            return UUID.fromString(uuid) != null;
+            UUID.fromString(uuid);
         } catch(IllegalArgumentException e) {
             return false;
         }
+        return true;
     }
 }

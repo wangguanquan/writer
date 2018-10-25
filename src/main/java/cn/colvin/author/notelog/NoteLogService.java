@@ -6,7 +6,7 @@ import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,24 +20,22 @@ import java.util.Map;
 /**
  * Create by guanquan.wang at 2018-08-24 14:26
  */
-@ConfigurationProperties(prefix = "spring.note")
 @Service
 public class NoteLogService {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
+    @Value("${spring.note.path}")
     private String path;
     private boolean saveWithFile = true;
 
+    @Value("${spring.note.save-with}")
     public void setSaveWith(String saveWith) {
         this.saveWithFile = "file".equalsIgnoreCase(saveWith);
     }
 
-    public void setPath(String path) {
-        this.path = path;
-    }
     @Autowired
-    cn.colvin.other.SQL<Void> SQL;
+    private cn.colvin.other.SQL<Void> SQL;
 
     public Map<String, String> getHistory(int id, int note_id) {
         Map<String, String> map = new HashMap<>();

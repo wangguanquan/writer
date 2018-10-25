@@ -7,7 +7,7 @@ import cn.colvin.utils.ZipUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
@@ -32,32 +32,16 @@ import static cn.colvin.enums.LogType.PUBLISH;
 /**
  * Create by guanquan.wang at 2018-08-23 16:37
  */
-@ConfigurationProperties(prefix = "spring.note")
 @RestController
 @RequestMapping("/author/notes")
 public class NoteController {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
-    NoteService service;
+    private NoteService service;
     @Autowired
-    UploadService uploadService;
-    String notePath;
-
-    public void setPath(String path) {
-        if (path == null || path.isEmpty()) {
-            path = "note";
-        }
-
-        Path temp = Paths.get(path);
-        if (!Files.exists(temp)) {
-            try {
-                FileUtil.mkdir(temp);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        this.notePath = path;
-    }
+    private UploadService uploadService;
+    @Value("${spring.note.path}")
+    private String notePath;
 
     static DateTimeFormatter LOCAL_ISO_DATETIME;
     static {

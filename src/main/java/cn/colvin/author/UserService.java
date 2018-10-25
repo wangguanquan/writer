@@ -16,7 +16,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 @Service
 public class UserService {
-    Logger logger = LogManager.getLogger(UserService.class);
+    private Logger logger = LogManager.getLogger(UserService.class);
     static final String UID = "_uid_";
 
     public User getByToken(String token) {

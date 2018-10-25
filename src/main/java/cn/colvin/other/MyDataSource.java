@@ -1,44 +1,24 @@
 package cn.colvin.other;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 
 @Component
-@ConfigurationProperties(prefix = "spring.dataSource")
 public class MyDataSource {
     private static BasicDataSource dataSource = null;
+    @Value("${spring.dataSource.username}")
     private String username;
+    @Value("${spring.dataSource.password}")
     private String password;
+    @Value("${spring.dataSource.url}")
     private String url;
+    @Value("${spring.dataSource.driverClassName}")
     private String driverClassName;
-    /**
-     * @param username the username to set
-     */
-    public void setUsername(String username) {
-        this.username = username;
-    }
-    /**
-     * @param password the password to set
-     */
-    public void setPassword(String password) {
-        this.password = password;
-    }
-    /**
-     * @param url the url to set
-     */
-    public void setUrl(String url) {
-        this.url = url;
-    }
-    /**
-     * @param driverClassName the driverClassName to set
-     */
-    public void setDriverClassName(String driverClassName) {
-        this.driverClassName = driverClassName;
-    }
+
     /**
      * database type: mysql oracle sqlite
      * @return

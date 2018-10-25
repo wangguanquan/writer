@@ -5,12 +5,11 @@ import cn.colvin.utils.FileUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -19,30 +18,14 @@ import java.util.UUID;
 /**
  * Create by guanquan.wang at 2018-08-24 16:23
  */
-@ConfigurationProperties(prefix = "spring.image")
 @Service
 public class UploadService {
-    Logger logger = LogManager.getLogger(getClass());
-
-    private String path, imagePath = "./images/";
+    private Logger logger = LogManager.getLogger(getClass());
+    @Value("${spring.image.path}")
+    private String path;
+    private String imagePath = "./images/";
     @Autowired
-    NoteService service;
-
-    public void setPath(String path) {
-        if (path == null || path.isEmpty()) {
-            path = "images/";
-        }
-
-        Path temp = Paths.get(path);
-        if (!Files.exists(temp)) {
-            try {
-                FileUtil.mkdir(temp);
-            } catch (IOException e) {
-                logger.error("", e);
-            }
-        }
-        this.path = path;
-    }
+    private NoteService service;
 
     /**
      * 为上传做准备

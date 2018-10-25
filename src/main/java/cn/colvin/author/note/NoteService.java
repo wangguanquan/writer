@@ -9,7 +9,7 @@ import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -24,24 +24,20 @@ import java.util.*;
 /**
  * Create by guanquan.wang at 2018-08-23 16:51
  */
-@ConfigurationProperties(prefix = "spring.note")
 @Service
 public class NoteService {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
     @Autowired
-    cn.colvin.other.SQL<Note> SQL;
-
+    private cn.colvin.other.SQL<Note> SQL;
+    @Value("${spring.note.path}")
     private String path;
     private boolean saveWithFile = true;
 
+    @Value("${spring.note.save-with}")
     public void setSaveWith(String saveWith) {
         this.saveWithFile = "file".equalsIgnoreCase(saveWith);
-    }
-
-    public void setPath(String path) {
-        this.path = path;
     }
 
     /**
@@ -168,11 +164,14 @@ public class NoteService {
                     logger.error("", e);
                 }
             }
-            try (BufferedWriter writer = Files.newBufferedWriter(notePath.resolve(content))) {
-                writer.write(nc.getContent());
-            } catch (IOException e) {
-                logger.error("", e);
+            if (nc.getContent() != null) {
+                try (BufferedWriter writer = Files.newBufferedWriter(notePath.resolve(content))) {
+                    writer.write(nc.getContent());
+                } catch (IOException e) {
+                    logger.error("", e);
+                }
             }
+            
         }
         final String ct = content;
         try (Connection con = dataSource.getConnection()) {

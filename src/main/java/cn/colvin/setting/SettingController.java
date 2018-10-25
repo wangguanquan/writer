@@ -17,9 +17,9 @@ import java.util.Map;
 @RequestMapping
 public class SettingController {
     @Autowired
-    SettingService service;
+    private SettingService service;
     @Autowired
-    UserService userService;
+    private UserService userService;
     /**
      * 模式（day/night）
      * @param data

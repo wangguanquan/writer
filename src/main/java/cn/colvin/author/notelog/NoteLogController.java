@@ -1,6 +1,5 @@
 package cn.colvin.author.notelog;
 
-import cn.colvin.author.note.NoteLog;
 import cn.colvin.utils.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +13,7 @@ import java.util.Map;
 @RequestMapping("/author/note_logs")
 public class NoteLogController {
     @Autowired
-    NoteLogService service;
+    private NoteLogService service;
 
     /**
      * 根据历史记录ID获取信息

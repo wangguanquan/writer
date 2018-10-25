@@ -7,9 +7,9 @@ import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -28,25 +28,25 @@ import java.util.UUID;
  * java -jar writer.jar --clean _ // 清空所有表数据
  * Create by guanquan.wang at 2018-08-28 16:16
  */
-@ConfigurationProperties(prefix = "spring.note")
 @Component
 public class CreateTableRunner implements ApplicationRunner {
     Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
-    private String path;
+    @Value("${spring.note.path}")
+    private String notePath;
+    @Value("${spring.image.path}")
+    private String imagePath;
+    @Value("${spring.note.save-with}")
+    private String saveWith;
     private boolean saveWithFile = true;
 
-    public void setSaveWith(String saveWith) {
-        this.saveWithFile = "file".equalsIgnoreCase(saveWith);
-    }
-
-    public void setPath(String path) {
-        if (path == null || path.isEmpty()) {
-            path = "notes/";
+    private void makePath() {
+        if (notePath == null || notePath.isEmpty()) {
+            notePath = "notes/";
         }
 
-        Path temp = Paths.get(path);
+        Path temp = Paths.get(notePath);
         if (!Files.exists(temp)) {
             try {
                 FileUtil.mkdir(temp);
@@ -54,12 +54,27 @@ public class CreateTableRunner implements ApplicationRunner {
                 logger.error("", e);
             }
         }
-        this.path = path;
+
+        if (imagePath == null || imagePath.isEmpty()) {
+            imagePath = "images/";
+        }
+
+        temp = Paths.get(imagePath);
+        if (!Files.exists(temp)) {
+            try {
+                FileUtil.mkdir(temp);
+            } catch (IOException e) {
+                logger.error("", e);
+            }
+        }
     }
 
     cn.colvin.other.SQL<Void> SQL = new SQL<>();
     @Override
     public void run(ApplicationArguments applicationArguments) throws Exception {
+        this.saveWithFile = "file".equalsIgnoreCase(saveWith);
+        makePath();
+
         String[] args = applicationArguments.getSourceArgs();
         logger.info(Arrays.toString(args));
 
@@ -109,7 +124,7 @@ public class CreateTableRunner implements ApplicationRunner {
     private void create(Connection con) throws SQLException {
         logger.info("Start to create table if not exists...");
 
-        String auto = "mysql".equals(dataSource.getType()) ? "   id integer primary key AUTO_INCREMENT,\n" : "   id integer primary key,\n";
+        final String auto = "mysql".equals(dataSource.getType()) ? "   id integer primary key AUTO_INCREMENT,\n" : "   id integer primary key,\n";
 
         logger.info("create table notebook.");
         SQL.update(con, "CREATE TABLE IF NOT EXISTS notebook (\n" + auto +
@@ -194,15 +209,15 @@ public class CreateTableRunner implements ApplicationRunner {
             for (int i = 0; i < titles.length; i++) {
                 contents[i] = UUID.randomUUID().toString();
 
-                Path notePath = Paths.get(path, String.valueOf(i + 1));
-                if (!Files.exists(notePath)) {
+                Path path = Paths.get(notePath, String.valueOf(i + 1));
+                if (!Files.exists(path)) {
                     try {
-                        FileUtil.mkdir(notePath);
+                        FileUtil.mkdir(path);
                     } catch (IOException e) {
                         logger.error("", e);
                     }
                 }
-                FileUtil.cp(getClass().getClassLoader().getResourceAsStream("template/" + titles[i] + ".md"), notePath.resolve(contents[i]));
+                FileUtil.cp(getClass().getClassLoader().getResourceAsStream("template/" + titles[i] + ".md"), path.resolve(contents[i]));
             }
         } else {
             for (int i = 0; i < titles.length; i++) {

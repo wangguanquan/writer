@@ -2,11 +2,10 @@ package cn.colvin.download;
 
 import cn.colvin.author.note.Note;
 import cn.colvin.author.note.NoteService;
-import cn.colvin.utils.FileUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,32 +22,12 @@ import java.nio.file.Paths;
 /**
  * Create by guanquan.wang at 2018-08-27 10:28
  */
-@ConfigurationProperties(prefix = "spring.note")
 @RestController
 @RequestMapping("/download")
 public class DownloadController {
-    Logger logger = LogManager.getLogger(getClass());
-    String notePath;
-
-    public void setPath(String path) {
-        if (path == null || path.isEmpty()) {
-            path = "note";
-        }
-
-//        if (!isAbsolute(path)) {
-//            String local = getClass().getClassLoader().getResource("./").getPath().substring(1);
-//            Path temp = Paths.get(local, path);
-//            if (!Files.exists(temp)) {
-//                try {
-//                    FileUtil.mkdir(temp);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//            path = temp.toString();
-//        }
-        this.notePath = path;
-    }
+    private Logger logger = LogManager.getLogger(getClass());
+    @Value("${spring.note.path}")
+    private String notePath;
 
     @Autowired
     NoteService service;

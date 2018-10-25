@@ -6,6 +6,8 @@ spring:
   dataSource:
     driverClassName: org.sqlite.JDBC
     url: jdbc:sqlite:writer.db
+    username:
+    password:
   note:
     save-with: sql  # storage note with file or sql. default file
     path: static/notes # storage note path

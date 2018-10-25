@@ -3,14 +3,11 @@ package cn.colvin.author.notebooks;
 import cn.colvin.author.UserService;
 import cn.colvin.author.note.Note;
 import cn.colvin.author.note.NoteService;
-import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 /**
@@ -19,13 +16,13 @@ import java.util.List;
 @RestController
 @RequestMapping("author/notebooks")
 public class NotebooksController {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
-    NotebooksService service;
+    private NotebooksService service;
     @Autowired
-    NoteService noteService;
+    private NoteService noteService;
     @Autowired
-    UserService userService;
+    private UserService userService;
 
     /**
      * 获取文集

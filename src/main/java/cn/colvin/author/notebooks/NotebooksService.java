@@ -16,11 +16,11 @@ import java.util.List;
  */
 @Service
 public class NotebooksService {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
     @Autowired
-    cn.colvin.other.SQL<Notebook> SQL;
+    private cn.colvin.other.SQL<Notebook> SQL;
 
     /**
      * 查找文集
