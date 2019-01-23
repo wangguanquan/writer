@@ -1,9 +1,11 @@
 package cn.colvin.author.note;
 
+import cn.colvin.Const;
 import cn.colvin.enums.LogType;
 import cn.colvin.other.MyDataSource;
 import cn.colvin.other.SQL;
 import cn.colvin.other.processor.BeanResultSetProcessor;
+import cn.colvin.upload.UploadService;
 import cn.colvin.utils.FileUtil;
 import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
@@ -13,13 +15,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Create by guanquan.wang at 2018-08-23 16:51
@@ -34,12 +36,14 @@ public class NoteService {
     @Value("${spring.note.path}")
     private String path;
     private boolean saveWithFile = true;
+    @Autowired
+    private UploadService uploadService;
 
     @Value("${spring.note.save-with}")
     public void setSaveWith(String saveWith) {
         this.saveWithFile = "file".equalsIgnoreCase(saveWith);
     }
-
+    Pattern localImagePat = Pattern.compile("\\[(.*)\\]\\(([\\w\\./-]+)\\)");
     /**
      * 创建文章
      * @return
@@ -93,7 +97,7 @@ public class NoteService {
        return null;
    }
 
-    BeanResultSetProcessor<Note> toNote = (ResultSet r) -> {
+    private BeanResultSetProcessor<Note> toNote = (ResultSet r) -> {
        Note o = new Note();
        try {
            o.setId(r.getInt(1));
@@ -108,6 +112,7 @@ public class NoteService {
            o.setLast_compiled_at(r.getLong(10));
            o.setPaid(r.getBoolean(11));
            o.setIn_book(r.getBoolean(12));
+           o.setModified(r.getBoolean(13));
        } catch (SQLException e) {
            logger.error("", e);
        }
@@ -116,7 +121,7 @@ public class NoteService {
 
    public Note getById(int id) {
        try (Connection con = dataSource.getConnection()) {
-           return SQL.select(con, "select id,slug,shared,notebook_id,seq_in_nb,note_type,autosave_control,title,content_updated_at,last_compiled_at,paid,in_book from note where id = ?", toNote, p -> p.setInt(1, id));
+           return SQL.select(con, "select id,slug,shared,notebook_id,seq_in_nb,note_type,autosave_control,title,content_updated_at,last_compiled_at,paid,in_book,modified from note where id = ?", toNote, p -> p.setInt(1, id));
        } catch (SQLException e) {
            logger.error("", e);
        }
@@ -130,17 +135,16 @@ public class NoteService {
      */
     public List<Note> listNotesByNotebookId(int id) {
         try (Connection con = dataSource.getConnection()) {
-            return SQL.selectList(con, "select id,slug,shared,notebook_id,seq_in_nb,note_type,autosave_control,title,content_updated_at,last_compiled_at,paid,in_book from note where notebook_id = ? and delete_flag = '0' order by seq_in_nb desc", toNote, id);
+            return SQL.selectList(con, "select id,slug,shared,notebook_id,seq_in_nb,note_type,autosave_control,title,content_updated_at,last_compiled_at,paid,in_book,modified from note where notebook_id = ? and delete_flag = '0' order by seq_in_nb desc", toNote, id);
         } catch (SQLException e) {
             logger.error("查询文集错误.", e);
         }
         return Collections.emptyList();
     }
 
-    BeanResultSetProcessor<String> toString = (ResultSet r) -> r.getString(1);
     public String content(int id) {
         try (Connection con = dataSource.getConnection()) {
-            String content = new SQL<String>().select(con, "select content from note_log where id = (select t1.autosave_control from note t1 where t1.id = ?)", toString, ps -> ps.setInt(1, id));
+            String content = new SQL<String>().select(con, "select content from note_log where id = (select t1.autosave_control from note t1 where t1.id = ?)", SQL.toString, ps -> ps.setInt(1, id));
             if (saveWithFile && StringUtil.isUUID(content)) {
                 content = StringUtil.readString(Files.newInputStream(Paths.get(path, String.valueOf(id), content)));
             }
@@ -183,13 +187,16 @@ public class NoteService {
                 ps.setInt(5, logType.type());
             });
 
-            SQL.update(con, "update note set autosave_control = ?, title = ?, content_updated_at = ?, shared=? where id = ?", ps -> {
+            SQL.update(con, "update note set autosave_control = ?, title = ?, content_updated_at = ?, shared=?,modified=? where id = ?", ps -> {
                 ps.setInt(1, (int) id);
                 ps.setString(2, nc.getTitle());
                 ps.setLong(3, at);
                 ps.setBoolean(4, logType == LogType.PUBLISH);
-                ps.setInt(5, nc.getId());
+                ps.setBoolean(5, nc.isModified());
+                ps.setInt(6, nc.getId());
             });
+
+            resetIndex(nc, id);
 
         } catch (SQLException e) {
             logger.error("自动保存失败.", e);
@@ -199,6 +206,43 @@ public class NoteService {
         log.setId(nc.getId());
         log.setContent_updated_at(at);
         return log;
+    }
+
+    private Path packagePath = Paths.get(".");
+    /**
+     * list image resources
+     * @param nc
+     * @return
+     */
+    private List<String> listResources(NoteContent nc) {
+        if (StringUtil.isEmpty(nc.getContent())) return null;
+        Matcher matcher = localImagePat.matcher(nc.getContent());
+        List<String> resources = new ArrayList<>();
+        while (matcher.find()) {
+            String image = matcher.group(2);
+            Path realPath = uploadService.getRealPath(image);
+            if (realPath != null && !realPath.equals(packagePath)) {
+                resources.add(realPath.toString());
+            }
+        }
+        return resources;
+    }
+
+    public void resetIndex(NoteContent nc, long logId) {
+        // make a resource index file
+        List<String> resources = listResources(nc);
+        if (resources != null && !resources.isEmpty()) {
+            Path indexPath = Paths.get("./", Const.Suffix.index, nc.getId() + Const.Suffix.index);
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(indexPath.toFile(), true))) {
+                writer.append('[').append(String.valueOf(logId)).append(']')
+                    .append(System.lineSeparator());
+                for (String r : resources) {
+                    writer.append(r).append(System.lineSeparator());
+                }
+            } catch (IOException e) {
+                logger.error("Writer resources index file error.", e);
+            }
+        }
     }
 
     public List<NoteLogGen> listLogsByNid(int id) {
@@ -218,25 +262,25 @@ public class NoteService {
         return Collections.emptyList();
     }
 
-/**
- * 根据slug获取Note
- * @param slug type of string
- * @return note or null
- */
-public Note getBySlug(String slug) {
-    try (Connection con = dataSource.getConnection()) {
-        return SQL.select(con, "select id, title from note where slug = ?", r -> {
-            Note n = new Note();
-            n.setId(r.getInt(1));
-            n.setTitle(r.getString(2));
-            return n;
-        }, p -> p.setString(1, slug));
-    } catch (SQLException e) {
-        logger.error("", e);
-    }
+    /**
+     * 根据slug获取Note
+     * @param slug type of string
+     * @return note or null
+     */
+    public Note getBySlug(String slug) {
+        try (Connection con = dataSource.getConnection()) {
+            return SQL.select(con, "select id, title from note where slug = ?", r -> {
+                Note n = new Note();
+                n.setId(r.getInt(1));
+                n.setTitle(r.getString(2));
+                return n;
+            }, p -> p.setString(1, slug));
+        } catch (SQLException e) {
+            logger.error("", e);
+        }
 
-    return null;
-}
+        return null;
+    }
 
     public Map<String, ?> destroy(int id) {
         try (Connection con = dataSource.getConnection()) {
@@ -289,5 +333,6 @@ public Note getBySlug(String slug) {
             logger.error("修改顺序错误.", e);
         }
     }
+
 
 }

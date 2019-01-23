@@ -17,6 +17,7 @@ public class Note {
     private boolean paid;
     private boolean in_book;
     private boolean at_bottom;
+    private boolean modified = true;
 
     public int getId() {
         return id;
@@ -120,5 +121,13 @@ public class Note {
 
     public void setAt_bottom(boolean at_bottom) {
         this.at_bottom = at_bottom;
+    }
+
+    public boolean isModified() {
+        return modified;
+    }
+
+    public void setModified(boolean modified) {
+        this.modified = modified;
     }
 }

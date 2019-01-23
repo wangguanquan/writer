@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -44,10 +45,13 @@ public class NoteLogService {
             SQL.select(con, "select content, title from note_log where id = ? and note_id = ?", r -> {
                String content = r.getString(1);
                 if (saveWithFile && StringUtil.isUUID(content)) {
-                    try {
-                        content = StringUtil.readString(Files.newInputStream(Paths.get(path, String.valueOf(note_id), content)));
-                    } catch (IOException e) {
-                        logger.error("", e);
+                    Path logPath = Paths.get(path, String.valueOf(note_id), content);
+                    if (Files.exists(logPath)) {
+                        try {
+                            content = StringUtil.readString(Files.newInputStream(logPath));
+                        } catch (IOException e) {
+                            logger.error("", e);
+                        }
                     }
                 }
                 map.put("content", content);

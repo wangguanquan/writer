@@ -1,11 +1,18 @@
 package cn.colvin.author.recycle;
 
+import cn.colvin.Const;
+import cn.colvin.author.note.NoteContent;
+import cn.colvin.author.note.NoteService;
+import cn.colvin.job.CleanService;
 import cn.colvin.other.MyDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -20,6 +27,10 @@ public class RecycleService {
     Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
+    @Autowired
+    private CleanService cleanService;
+    @Autowired
+    private NoteService noteService;
     @Autowired
     cn.colvin.other.SQL<RecycleNote> SQL;
 
@@ -95,7 +106,23 @@ public class RecycleService {
 
     public void deleteNote(int id) {
         try (Connection con = dataSource.getConnection()) {
-            SQL.update(con, "delete from note where id = ? and delete_flag = '1'", ps -> ps.setInt(1, id));
+            Path indexPath = Paths.get("./", Const.Suffix.index, id + Const.Suffix.index);
+            if (!Files.exists(indexPath)) {
+                SQL.select(con, "select id,content from note_log where note_id = ?", resultSet -> {
+                    NoteContent nc = new NoteContent();
+                    nc.setId(id);
+                    nc.setContent(resultSet.getString(2));
+                    noteService.resetIndex(nc,resultSet.getInt(1));
+                }, ps -> ps.setInt(1, id));
+            }
+            // Delete note
+            int i = SQL.update(con, "delete from note where id = ? and delete_flag = '1'", ps -> ps.setInt(1, id));
+            // Delete note logs
+            if (i == 1) {
+                SQL.update(con, "delete from note_log where note_id = ?", ps -> ps.setInt(1, id));
+            }
+            // Remove note from desk
+            cleanService.clearNoteFile(id);
         } catch (SQLException e) {
             logger.error("", e);
         }

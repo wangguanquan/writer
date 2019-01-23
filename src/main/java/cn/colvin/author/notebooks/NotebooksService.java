@@ -28,7 +28,7 @@ public class NotebooksService {
      */
     public List<Notebook> get(int uid) {
         try (Connection con = dataSource.getConnection()) {
-            return SQL.selectList(con, "select id, name, seq from notebook where id = 1 union all select id, name, seq from notebook where uid = ? and delete_flag = '0' order by seq desc"
+            return SQL.selectList(con, "select id, `name`, seq from notebook where id = 1 union all select id, name, seq from notebook where uid = ? and delete_flag = '0' order by seq desc"
                     , r -> new Notebook(r.getInt(1), r.getString(2), r.getInt(3)), ps -> ps.setInt(1, uid));
         } catch (SQLException e) {
             logger.error("查询文集错误.", e);
@@ -43,7 +43,7 @@ public class NotebooksService {
      */
     public Notebook create(Notebook nb, int uid) {
         try (Connection con = dataSource.getConnection()) {
-            long id = SQL.insert(con, "insert into notebook(uid, name, seq) values (?, ?, (select count(t1.id) from notebook t1))", ps -> {
+            long id = SQL.insert(con, "insert into notebook(uid, `name`, seq) values (?, ?, (select count(t1.id) from notebook t1))", ps -> {
                 ps.setInt(1, uid);
                 ps.setString(2, nb.getName());
             });
@@ -69,7 +69,7 @@ public class NotebooksService {
                 logger.debug("只能修改本人的文集");
                 return;
             }
-            SQL.update(con, "update notebook set name = ? where id = ?", nb.getName(), nb.getId());
+            SQL.update(con, "update notebook set `name` = ? where id = ?", nb.getName(), nb.getId());
         } catch (SQLException e) {
             logger.error("修改文集错误.", e);
         }

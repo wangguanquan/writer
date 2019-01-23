@@ -31,8 +31,10 @@ public class UploadController {
      */
     @PostMapping
     public UploadResult upload(MultipartFile file, HttpServletRequest request) throws IOException {
-        String token = request.getParameter("token"), key = request.getParameter("key");
-        return service.upload(key, token, file);
+        String token = request.getParameter("token")
+            , key = request.getParameter("key")
+            , noteId = request.getParameter("noteId");
+        return service.upload(key, token, noteId, file);
     }
 
     /**
@@ -42,7 +44,7 @@ public class UploadController {
      * @return
      */
     @PostMapping("/fetch")
-    public UploadResult fatch(@RequestBody Map<String, String> data) {
+    public UploadResult fetch(@RequestBody Map<String, String> data) {
         String url = data.get("url");
         UploadResult result = new UploadResult();
         result.setFormat(url.substring(url.lastIndexOf('.') + 1));

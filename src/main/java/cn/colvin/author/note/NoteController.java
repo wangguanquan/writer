@@ -112,7 +112,7 @@ public class NoteController {
         return service.destroy(id);
     }
 
-    Pattern pat = Pattern.compile("\\[(.*)\\]\\(([\\w\\./-]+)\\)");
+
     /**
      * 导出
      * @param id
@@ -124,8 +124,15 @@ public class NoteController {
             Note note = service.getById(id);
             if (note == null) {
                 // note not exists
+                logger.error("Note " + id + " not exists.");
                 return;
             }
+
+            // Not modify from last download
+            if (!note.isModified()) {
+                return;
+            }
+
             Path path = Files.createTempDirectory("writer+");
 //            System.out.println(path);
             ClassLoader loader = getClass().getClassLoader();
@@ -136,13 +143,13 @@ public class NoteController {
             // copy markdown content
             FileUtil.cp(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), Files.createFile(path.resolve("README.md")));
             // copy images
-            Matcher matcher = pat.matcher(content);
+            Matcher matcher = service.localImagePat.matcher(content);
             boolean mkdir = true, mkstatic = true;
             Path imagePath = null, staticPath = null, packagePath = Paths.get(".");
             while (matcher.find()) {
                 String image = matcher.group(2);
                 Path realPath = uploadService.getRealPath(image);
-                // No copy when null path or http/https path
+                // No copy if null path or http/https path
                 if (realPath == null) continue;
                 int n;
                 String s = image.substring((n = image.lastIndexOf('/')) > 0 ? n + 1 : 0);
@@ -180,6 +187,7 @@ public class NoteController {
             nc.setId(id);
             nc.setTitle(note.getTitle());
             nc.setContent(content);
+            nc.setModified(false);
             service.save(nc, PUBLISH);
         } catch (IOException e) {
             logger.error("下载文档失败。", e);

@@ -1,15 +1,15 @@
 package cn.colvin.upload;
 
-import cn.colvin.author.note.NoteService;
 import cn.colvin.utils.FileUtil;
+import cn.colvin.utils.StringUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
@@ -24,8 +24,8 @@ public class UploadService {
     @Value("${spring.image.path}")
     private String path;
     private String imagePath = "./images/";
-    @Autowired
-    private NoteService service;
+//    @Autowired
+//    private NoteService service;
 
     /**
      * 为上传做准备
@@ -41,11 +41,12 @@ public class UploadService {
 
     /**
      * 上传
-     * @param key
-     * @param file
+     * @param key the file name
+     * @param file the file binary data
+     * @param noteId the note id
      * @return
      */
-    public UploadResult upload(String key, String token, MultipartFile file) throws IOException {
+    public UploadResult upload(String key, String token, String noteId, MultipartFile file) throws IOException {
         Path outPath = Paths.get(path, key);
         logger.debug("上传至: {}", outPath);
         // TODO check token

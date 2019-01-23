@@ -7,8 +7,9 @@ import cn.colvin.other.processor.ResultSetProcessor;
 import org.springframework.stereotype.Component;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * 简要封装jdbc实现ORM功能
@@ -30,7 +31,18 @@ import java.util.List;
  */
 @Component
 public class SQL<T> {
-        public void select(Connection conn, String sql, ResultSetProcessor processor, ParamProcessor paramProcessor)
+    public void select(Connection conn, String sql, ResultSetProcessor processor)
+        throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    processor.process(rs);
+                }
+            }
+        }
+    }
+
+    public void select(Connection conn, String sql, ResultSetProcessor processor, ParamProcessor paramProcessor)
             throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             paramProcessor.build(ps);
@@ -115,6 +127,64 @@ public class SQL<T> {
         }
     }
 
+    // --- TODO Stream
+    // FIXME how close statement and result
+
+    public Stream<T> stream(Connection conn, String sql, BeanResultSetProcessor<T> processor) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                return tStream(rs, processor);
+            }
+        }
+    }
+
+    public Stream<T> stream(Connection conn, String sql, BeanResultSetProcessor<T> processor, ParamProcessor paramProcessor) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            paramProcessor.build(ps);
+            try (ResultSet rs = ps.executeQuery()) {
+                return tStream(rs, processor);
+            }
+        }
+    }
+
+    public Stream<T> stream(Connection conn, String sql, BeanResultSetProcessor<T> processor, Object ... params) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            int cnt = 0;
+            for (Object param : params) {
+                ps.setObject(++cnt, param);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return tStream(rs, processor);
+            }
+        }
+    }
+
+    private Stream<T> tStream(ResultSet rs, BeanResultSetProcessor<T> processor) {
+        Iterator<T> iter = new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                try {
+                    return rs.next();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public T next() {
+                try {
+                    return processor.process(rs);
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        return  StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+            iter, Spliterator.ORDERED | Spliterator.NONNULL), false);
+    }
+
+    // --- Count
+
     public int count(Connection conn, String sql, Object... params)
             throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -139,6 +209,8 @@ public class SQL<T> {
         }
         return 0;
     }
+
+    // --- Update
 
     /**
      * 如果需要获取自增长主键的插入时调用此方法
@@ -193,6 +265,8 @@ public class SQL<T> {
             return ps.executeUpdate();
         }
     }
+
+    // --- Batch
 
     public int[] batchUpdate(Connection conn, String sql, ParamProcessor processor)
             throws SQLException {
@@ -307,4 +381,28 @@ public class SQL<T> {
         }
     }
 
+    // --- EXISTS
+
+    public boolean exists(Connection con, String sql) throws SQLException {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw e;
+        }
+    }
+
+    public boolean exists(Connection con, String sql, ParamProcessor paramProcessor) throws SQLException {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            paramProcessor.build(ps);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw e;
+        }
+    }
+
+    public static BeanResultSetProcessor<String> toString = (ResultSet r) -> r.getString(1);
 }

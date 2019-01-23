@@ -1,5 +1,6 @@
 package cn.colvin.runner;
 
+import cn.colvin.Const;
 import cn.colvin.other.MyDataSource;
 import cn.colvin.other.SQL;
 import cn.colvin.utils.FileUtil;
@@ -30,7 +31,7 @@ import java.util.UUID;
  */
 @Component
 public class CreateTableRunner implements ApplicationRunner {
-    Logger logger = LogManager.getLogger(getClass());
+    private Logger logger = LogManager.getLogger(getClass());
     @Autowired
     private MyDataSource dataSource;
     @Value("${spring.note.path}")
@@ -51,7 +52,8 @@ public class CreateTableRunner implements ApplicationRunner {
             try {
                 FileUtil.mkdir(temp);
             } catch (IOException e) {
-                logger.error("", e);
+                logger.error("Can't create notes path at " + temp, e);
+                System.exit(-1);
             }
         }
 
@@ -64,12 +66,23 @@ public class CreateTableRunner implements ApplicationRunner {
             try {
                 FileUtil.mkdir(temp);
             } catch (IOException e) {
-                logger.error("", e);
+                logger.error("Can't create images path at " + temp, e);
+                System.exit(-2);
+            }
+        }
+
+        Path index = Paths.get("./", Const.Suffix.index);
+        if (!Files.exists(index)) {
+            try {
+                FileUtil.mkdir(index);
+            } catch (IOException e) {
+                logger.error("Can't create index dir at " + index, e);
+                System.exit(-3);
             }
         }
     }
 
-    cn.colvin.other.SQL<Void> SQL = new SQL<>();
+    private cn.colvin.other.SQL<Void> SQL = new SQL<>();
     @Override
     public void run(ApplicationArguments applicationArguments) throws Exception {
         this.saveWithFile = "file".equalsIgnoreCase(saveWith);
@@ -98,9 +111,9 @@ public class CreateTableRunner implements ApplicationRunner {
 
     /**
      * 清除表操作
-     * @param con
-     * @param tableName
-     * @throws SQLException
+     * @param con the sql connection
+     * @param tableName the table name
+     * @throws SQLException if error
      */
     private void clean(Connection con, String tableName) throws SQLException {
         logger.info("Clean table {}.", tableName);
@@ -109,6 +122,8 @@ public class CreateTableRunner implements ApplicationRunner {
             SQL.update(con, "drop table note");
             SQL.update(con, "drop table note_log");
             SQL.update(con, "drop table setting");
+            SQL.update(con, "drop table job");
+            SQL.update(con, "drop table job_log");
         } else {
             SQL.update(con, "drop table " + tableName);
         }
@@ -124,7 +139,7 @@ public class CreateTableRunner implements ApplicationRunner {
     private void create(Connection con) throws SQLException {
         logger.info("Start to create table if not exists...");
 
-        final String auto = "mysql".equals(dataSource.getType()) ? "   id integer primary key AUTO_INCREMENT,\n" : "   id integer primary key,\n";
+        final String auto = dataSource.isMysql() ? "   id integer primary key AUTO_INCREMENT,\n" : "   id integer primary key,\n";
 
         logger.info("create table notebook.");
         SQL.update(con, "CREATE TABLE IF NOT EXISTS notebook (\n" + auto +
@@ -148,6 +163,7 @@ public class CreateTableRunner implements ApplicationRunner {
                 "   last_compiled_at integer DEFAULT NULL,\n" +
                 "   paid integer DEFAULT NULL,\n" +
                 "   in_book integer DEFAULT NULL,\n" +
+                "   modified integer DEFAULT 1,\n" +
                 "   delete_at integer DEFAULT NULL,\n" +
                 "   delete_flag integer DEFAULT '0'\n" +
                 " )");
@@ -163,12 +179,62 @@ public class CreateTableRunner implements ApplicationRunner {
                 " )");
 
         logger.info("create table setting.");
-        SQL.update(con, "CREATE TABLE IF NOT EXISTS setting (\n" +
+        SQL.update(con, "CREATE TABLE IF NOT EXISTS `setting` (\n" + auto +
                 "   uid integer,\n" +
                 "   `key` text,\n" +
                 "   `value` text\n" +
                 ")");
+
+//        logger.info("create table job.");
+//        SQL.update(con, "CREATE TABLE IF NOT EXISTS `job` (\n" + auto +
+//            "  `name` text NULL,\n" +
+//            "  `describe` text NULL,\n" +
+//            "  `last_execute` integer DEFAULT NULL" +
+//            ")");
+
+        logger.info("Create table job_log.");
+        SQL.update(con, "CREATE TABLE IF NOT EXISTS `job_log` (\n" + auto +
+            "  `job_id` integer NOT NULL,\n" +
+            "  `start_time` integer NOT NULL,\n" +
+            "  `end_time` integer DEFAULT NULL,\n" +
+            "  `status` integer NOT NULL,\n" +
+            "  `log` text DEFAULT NULL" +
+            ")");
+
+        if (!indexExists(con, "job_log", "idx_start_time")) {
+            SQL.update(con, "CREATE INDEX idx_start_time on job_log(start_time)");
+        }
         logger.info("End create.");
+
+        try {
+            SQL.count(con, "select modified from note limit 1");
+        } catch (SQLException e) {
+            SQL.update(con, "alter table note add column modified integer DEFAULT 1");
+        }
+    }
+
+    /**
+     * Check table index is exists
+     * @param con the jdbc Connection
+     * @param tableName the table name
+     * @param indexName the index name
+     * @return true if exists
+     * @throws SQLException
+     */
+    private boolean indexExists(Connection con, final String tableName, final String indexName) throws SQLException {
+        boolean exists = true;
+        if (dataSource.isMysql()) {
+            exists = SQL.exists(con, "show index from " + tableName + " where key_name = ?", ps -> ps.setString(1, indexName));
+        }
+        else if (dataSource.isSQLite()) {
+            // sqlite3 index name is unique
+            exists = SQL.exists(con, "SELECT * FROM sqlite_master WHERE type = 'index' and name = ?", ps -> {
+//                ps.setString(1, tableName);
+                ps.setString(1, indexName);
+            });
+        }
+        // @Mark: other database type case
+        return exists;
     }
 
     /**
@@ -178,7 +244,8 @@ public class CreateTableRunner implements ApplicationRunner {
         int n = SQL.count(con, "select id from notebook where id = 1");
         if (n == 1) return;
 
-        SQL.insert(con, "insert into notebook(uid, name, seq) values (?, ?, 0)", ps -> {
+        // 1. 插入新手指南和说明信息
+        SQL.insert(con, "insert into notebook(uid, `name`, seq) values (?, ?, 0)", ps -> {
             ps.setInt(1, 0);
             ps.setString(2, "关于writer");
         });
@@ -186,7 +253,7 @@ public class CreateTableRunner implements ApplicationRunner {
         String[] titles = {"Markdown 新手指南", "Writer说明"};
         final long at = System.currentTimeMillis() / 1000;
         SQL.batchUpdate(con, "insert into note(slug,shared,notebook_id,seq_in_nb,note_type,autosave_control,title,content_updated_at,last_compiled_at,paid,in_book)" +
-                " values(?,?,?,?,?,?,?,?,?,?,?)", ps -> {
+            " values(?,?,?,?,?,?,?,?,?,?,?)", ps -> {
             for (int i = 0; i < titles.length; i++) {
                 ps.setString(1, StringUtil.randomString(12));
                 ps.setBoolean(2, true);

@@ -4,7 +4,7 @@ package cn.colvin.author.note;
  * Create by guanquan.wang at 2018-08-24 11:26
  */
 public class NoteLog {
-    private int id;
+    private int id; // note id
     private String content_size_status;
     private long content_updated_at;
     private long last_compiled_at;

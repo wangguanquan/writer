@@ -19,11 +19,16 @@ public class MyDataSource {
     @Value("${spring.dataSource.driverClassName}")
     private String driverClassName;
 
+    private String type; // Type name of database
+
     /**
      * database type: mysql oracle sqlite
-     * @return
+     * @return the database type name
      */
     public String getType() {
+        if (type != null) {
+            return type;
+        }
         if (url != null) {
             int index = url.indexOf(':'), next = index > 0 ? url.indexOf(':', ++index) : -1;
             if (next < 0) return null;
@@ -36,9 +41,50 @@ public class MyDataSource {
                     type = url.substring(next, index);
                 }
             }
+            this.type = type;
             return type;
         }
         return null;
+    }
+
+    public boolean isMysql() {
+        return "mysql".equals(getType());
+    }
+
+    public boolean isSQLite() {
+        return "sqlite".equals(getType());
+    }
+
+    public boolean isOracle() {
+        return "oracle".equals(getType());
+    }
+
+    public boolean isDB2() {
+        return "db2".equals(getType());
+    }
+
+    public boolean isSqlserver() {
+        return "sqlserver".equals(getType());
+    }
+
+    public boolean isInformix() {
+        return "informix-sqli".equals(getType());
+    }
+
+    public boolean isSybase() {
+        return "sybase".equals(getType());
+    }
+
+    public boolean isPostgreSQL() {
+        return "postgresql".equals(getType());
+    }
+
+    public boolean isTeradata() {
+        return "teradata".equals(getType());
+    }
+
+    public boolean isNetezza() {
+        return "netezza".equals(getType());
     }
 
     public BasicDataSource getDataSource() {

@@ -35,6 +35,7 @@ public class StringUtil {
         while ((n = in.read(bytes)) > 0) {
             bos.write(bytes, 0, n);
         }
+        FileUtil.close(in);
         return new String(bos.toByteArray(), StandardCharsets.UTF_8);
     }
 

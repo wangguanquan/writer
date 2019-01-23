@@ -879,13 +879,15 @@ webpackJsonp([0], {
                             var t = this.dataArray.length;
                             return this.num === t
                         }, t.prototype.upload = function (t) {
-                            var e = this, n = t.url, o = t.file, r = this.checkError(t);
+                            var e = this, n = t.url, nid = t.noteId, o = t.file, r = this.checkError(t);
+							var _this = this;
                             return r ? new i.default(function (t, n) {
                                 e.num++, n(r)
                             }) : d.isIFile(o) ? new i.default(function (t, n) {
                                 u.get("/upload_images/token.json", {params: {filename: o.name || "image.png"}}).then(function (r) {
                                     var i = r.data, a = i.token, l = i.key, c = new FormData;
-                                    c.append("token", a), c.append("key", l), c.append("file", o), c.append("x:protocol", e.options["x:protocol"]), u.post("/upload_images", c).then(function (n) {
+                                    console.log(_this)
+									c.append("token", a), c.append("key", l), c.append("noteId", nid), c.append("file", o), c.append("x:protocol", e.options["x:protocol"]), u.post("/upload_images", c).then(function (n) {
                                         var o = n.data, r = s({}, o, {url: d.getImageUrl(o.url, o.format)});
                                         e.num++, t(r)
                                     }).catch(function () {
@@ -2656,6 +2658,7 @@ webpackJsonp([0], {
                         }
                         W.default.resetOptions()
                     }, o.uploadImage = function (t, e, n) {
+						var noteId = o.getNote().get('id');
                         var r = !1, a = new F.default(t, {size: 10485760, "x:protocol": rt.slice(0, -1)});
                         t.forEach(function () {
                             var t = (0, p.default)(u.default.mark(function t(l) {
@@ -2663,6 +2666,7 @@ webpackJsonp([0], {
                                 return u.default.wrap(function (t) {
                                     for (; ;) switch (t.prev = t.next) {
                                         case 0:
+											l.noteId = noteId
                                             return t.prev = 0, t.next = 3, a.upload(l);
                                         case 3:
                                             s = t.sent, e({
